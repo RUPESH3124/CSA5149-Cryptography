@@ -1,0 +1,143 @@
+#include <stdio.h>
+#include <string.h>
+#include <ctype.h>
+
+#define SIZE 5
+
+void generateKeyTable(char key[], char keyTable[SIZE][SIZE]) {
+    int i, j, k, index = 0;
+    int used[26] = {0};
+
+    // Mark 'j' as used since we will use 'i' and 'j' interchangeably
+    used['j' - 'a'] = 1;
+
+    // Fill the key table with the characters from the keyword
+    for (i = 0; i < SIZE; ++i) {
+        for (j = 0; j < SIZE; ++j) {
+            if (key[index] == '\0') {
+                break;
+            }
+
+            char ch = tolower(key[index++]);
+
+            if (ch == 'j') {
+                ch = 'i';
+            }
+
+            if (!used[ch - 'a']) {
+                keyTable[i][j] = ch;
+                used[ch - 'a'] = 1;
+            } else {
+                --j;
+            }
+        }
+        if (key[index] == '\0') {
+            break;
+        }
+    }
+
+    // Fill the remaining positions with the rest of the alphabet
+    for (k = 0; k < 26; ++k) {
+        char ch = 'a' + k;
+
+        if (ch == 'j') {
+            continue;
+        }
+
+        if (!used[ch - 'a']) {
+            keyTable[i][j] = ch;
+            used[ch - 'a'] = 1;
+
+            if (++j == SIZE) {
+                j = 0;
+                ++i;
+            }
+        }
+    }
+}
+
+void formatPlaintext(char* plaintext) {
+    int i, len = strlen(plaintext);
+    for (i = 0; i < len; ++i) {
+        if (plaintext[i] == 'j') {
+            plaintext[i] = 'i';
+        }
+    }
+
+    for (i = 0; i < len - 1; i += 2) {
+        if (plaintext[i] == plaintext[i + 1]) {
+            memmove(plaintext + i + 2, plaintext + i + 1, len - i);
+            plaintext[i + 1] = 'x';
+            ++len;
+        }
+    }
+
+    if (len % 2 != 0) {
+        plaintext[len] = 'x';
+        plaintext[len + 1] = '\0';
+    }
+}
+
+void findPosition(char keyTable[SIZE][SIZE], char ch, int* row, int* col) {
+    int i, j;
+
+    for (i = 0; i < SIZE; ++i) {
+        for (j = 0; j < SIZE; ++j) {
+            if (keyTable[i][j] == ch) {
+                *row = i;
+                *col = j;
+                return;
+            }
+        }
+    }
+}
+
+void encryptPair(char keyTable[SIZE][SIZE], char a, char b, char* cipherText) {
+    int row1, col1, row2, col2;
+
+    findPosition(keyTable, a, &row1, &col1);
+    findPosition(keyTable, b, &row2, &col2);
+
+    if (row1 == row2) {
+        cipherText[0] = keyTable[row1][(col1 + 1) % SIZE];
+        cipherText[1] = keyTable[row2][(col2 + 1) % SIZE];
+    } else if (col1 == col2) {
+        cipherText[0] = keyTable[(row1 + 1) % SIZE][col1];
+        cipherText[1] = keyTable[(row2 + 1) % SIZE][col2];
+    } else {
+        cipherText[0] = keyTable[row1][col2];
+        cipherText[1] = keyTable[row2][col1];
+    }
+}
+
+void encrypt(char* plaintext, char keyTable[SIZE][SIZE], char* ciphertext) {
+    int i, len = strlen(plaintext);
+
+    for (i = 0; i < len; i += 2) {
+        encryptPair(keyTable, plaintext[i], plaintext[i + 1], &ciphertext[i]);
+    }
+
+    ciphertext[len] = '\0';
+}
+
+int main() {
+    char key[50];
+    char plaintext[100];
+    char ciphertext[100];
+    char keyTable[SIZE][SIZE];
+
+    printf("Enter the keyword: ");
+    scanf("%s", key);
+
+    printf("Enter the plaintext: ");
+    scanf("%s", plaintext);
+
+    formatPlaintext(plaintext);
+    generateKeyTable(key, keyTable);
+
+    encrypt(plaintext, keyTable, ciphertext);
+
+    printf("Encrypted text: %s\n", ciphertext);
+
+    return 0;
+}
